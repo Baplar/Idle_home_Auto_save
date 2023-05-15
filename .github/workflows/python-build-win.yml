@@ -1,6 +1,16 @@
 name: Python build Windows executable
 
-on: [push]
+on:
+  workflow_dispatch:
+    inputs:
+      dns_name:
+        type: string
+        required: true
+        description: The domain name to use for the certificate
+      email:
+        type: string
+        required: true
+        description: The subject email to use for the certificate
 
 permissions:
   contents: read
@@ -25,8 +35,11 @@ jobs:
     - name: Sign built executable
       shell: pwsh
       run: |
-        New-SelfSignedCertificate -Type CodeSigning -Subject "E=contact@baplar.fr,CN=www.baplar.fr" -CertStoreLocation "cert:\CurrentUser\My"
-        & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.17763.0\x86\SignTool.exe" sign /fd SHA256 /n "www.baplar.fr" /t http://timestamp.digicert.com .\dist\auto_save.exe
+        New-SelfSignedCertificate -Type CodeSigning -Subject "E=${Env:EMAIL},CN=${Env:DNSNAME}" -CertStoreLocation "cert:\CurrentUser\My"
+        & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.17763.0\x86\SignTool.exe" sign /fd SHA256 /n "$Env:DNSNAME" /t http://timestamp.digicert.com .\dist\auto_save.exe
+      env:
+        DNSNAME: ${{ inputs.dns_name }}
+        EMAIL: ${{ inputs.email }}
     - name: Upload built executable artifact
       uses: actions/upload-artifact@v3
       with:
